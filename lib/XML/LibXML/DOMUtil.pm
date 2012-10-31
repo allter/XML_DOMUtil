@@ -287,7 +287,7 @@ sub _get_document_fragment_from_ordered_hash ( $ $ $ )
 
 		# Create element. If needed, use namespace
 		my $el;
-		if ( defined $ns )
+		if ( defined $ns && length $ns )
 		{
 			if ( $namespace_by_prefix->{ $ns } )
 			{
@@ -296,6 +296,11 @@ sub _get_document_fragment_from_ordered_hash ( $ $ $ )
 			else
 			{
 				my $uri = $dom->lookupNamespaceURI( $ns );
+				unless ( defined $uri )
+				{
+					require Carp;
+					Carp::croak "Uri not defined for namespace prefix $ns neither in hash nor in the dom";
+				}
 				$el = $document->createElementNS( $uri, $ns.":".$element_name );
 			}
 		}

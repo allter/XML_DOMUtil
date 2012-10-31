@@ -4,10 +4,11 @@ use utf8;
 
 use constant DEBUG => 0;
 
-BEGIN{
-require 'DOMUtil.pm';
-import XML::LibXML::DOMUtil;
-}
+#BEGIN{
+#require 'DOMUtil.pm';
+#import XML::LibXML::DOMUtil;
+#}
+use XML::LibXML::DOMUtil;
 
 use XML::LibXML;
 
@@ -87,11 +88,11 @@ my $tmp_dom = importOrderedHash( $dom3->documentElement, {
 		'xmlns:some' => '123',
 	},
 	child => 5,
-	'ns:child' => 42,
+	#'ns:child' => 42, # croaks
 	'some:child' => 42,
 	descent => {
 		child => 5,
-		'ns:child' => 42,
+		#'ns:child' => 42, # croaks
 		'some:child' => 42,
 	},
 } );
