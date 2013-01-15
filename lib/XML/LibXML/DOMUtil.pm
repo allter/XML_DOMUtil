@@ -386,11 +386,11 @@ sub xml_dom_from_ordered_hash( $ )
 
 # toUnicodeString( $dom, $format ) Presents the specified dom hierarchy as a unicode string containing
 # well-formed XML. No xml prologue (<?xml..>), DTD or ENTITY stuff is written.
-sub toUnicodeString ( $ $ )
+sub toUnicodeString ( $ ; $ $ )
 {
 	return $_[0]->nodeType() == XML::LibXML::XML_DOCUMENT_NODE
-		? $_[0]->ownerDocument->documentElement->toString( $_[1] )
-		: $_[0]->toString( $_[1] );
+		? $_[0]->ownerDocument->documentElement->toString( $_[1], $_[2] )
+		: $_[0]->toString( $_[1], $_[2] );
 }
 
 1; # End of XML::LibXML::DOMUtil

@@ -26,6 +26,11 @@ my $xml = parse_xml <<END;
 END
 DEBUG && print toUnicodeString( $xml, 1 );
 
+# TODO: Problem or misunderstanding about docencoding!
+#DEBUG && print toUnicodeString( $xml, 0, 'cp1251' );
+
+#DEBUG && print $xml->toString( 0 );
+
 my $imported_xml = importXML $xml, <<END;
 <вложенный>
 	<ещё>42</ещё>
