@@ -15,6 +15,7 @@ use XML::LibXML::DOMUtil;
 
 use XML::LibXML;
 
+# Parsing well-formed xml from string literal (here-doc) as a XML DOM document ---------
 my $xml = parse_xml <<END;
 <root>
 	1
@@ -31,6 +32,7 @@ DEBUG && print toUnicodeString( $xml, 1 );
 
 #DEBUG && print $xml->toString( 0 );
 
+# Adding xml fragment to existing xml DOM
 my $imported_xml = importXML $xml, <<END;
 <вложенный>
 	<ещё>42</ещё>
@@ -41,6 +43,7 @@ END
 $xml->ownerDocument->documentElement->appendChild( $imported_xml );
 DEBUG && print toUnicodeString( $xml, 1 );
 
+# Creating a XML DOM from 'ordered hash structure' ----------
 my $ohash = {
 	Element => 19,
 	'42_Element' => 42,
@@ -64,6 +67,7 @@ $xml2->ownerDocument->documentElement->appendChild( importOrderedHash $xml2, {
 } );
 DEBUG && print toUnicodeString( $xml2, 1 );
 
+# replaceInnerNodes - which implements innerHTML/innerXML on the level of XML DOM ----------
 my $node = ( $xml2->findnodes( '/root/Inner' ) )[0];
 replaceInnerNodes( $node, importXML $node, <<END );
 <inner_tag>inner_tag_value</inner_tag>
@@ -72,6 +76,8 @@ END
 DEBUG && print 'node: '.toUnicodeString( $node, 1 );
 DEBUG && print 'xml2: '.toUnicodeString( $xml2, 1 );
 
+# Parse string literal as a standalone and import "xml fragment" DOM structures ----------
+# (not well-formed XML chunks suitable for being a content of elements)
 my $frag = parse_xml_fragment <<END;
 	<some_node>some node value </some_node>
 <some_node2>   some node #2 value </some_node2>
