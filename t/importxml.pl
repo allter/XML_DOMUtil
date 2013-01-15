@@ -4,6 +4,9 @@ use utf8;
 
 use constant DEBUG => 0;
 
+binmode STDOUT, ":utf8";
+#binmode STDERR, ":utf8";
+
 #BEGIN{
 #require 'DOMUtil.pm';
 #import XML::LibXML::DOMUtil;
@@ -18,6 +21,7 @@ my $xml = parse_xml <<END;
 	<child>CHILD</child>
 	2
 	<unicode>Проверка</unicode>
+	<кириллический_тег кириллический_атрибут="кириллическое значение атрибута">кириллический текст</кириллический_тег>
 </root>
 END
 DEBUG && print toUnicodeString( $xml, 1 );
