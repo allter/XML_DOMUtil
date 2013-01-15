@@ -26,7 +26,8 @@ my $xml = parse_xml <<END;
 	<кириллический_тег кириллический_атрибут="кириллическое значение атрибута">кириллический текст</кириллический_тег>
 </root>
 END
-DEBUG && print toUnicodeString( $xml, 1 );
+#$xml->setEncoding( 'utf-8' );
+DEBUG && print "source xml unicod string: ".toUnicodeString( $xml, 1 );
 
 # TODO: Problem or misunderstanding about docencoding!
 $xml->setEncoding( 'utf-8' );
@@ -34,23 +35,26 @@ $xml->setEncoding( 'utf-8' );
 #$xml->setEncoding( 'windows-1251' );
 #DEBUG && print toUnicodeString( $xml, 0, 'us-ascii' );
 #DEBUG && print toUnicodeString( $xml, 0, 'cp1251' );
-warn "encoding: ".$xml->getEncoding;
+#warn "encoding: ".$xml->getEncoding;
+#warn "actual encoding: ".$xml->getEncoding;
 
 #DEBUG && print "after setEncoding: ".toUnicodeString( $xml, 1);
 
-#my $xml_byte_string = toByteString( $xml, 'windows-1251' => 2 );
-my $xml_byte_string = toByteString( $xml, 'windows-1251' => 2 );
+#my $xml_byte_string = toByteString( $xml, 'ascii' => 2 );
+#my $xml_byte_string = toByteString( $xml, 'latin1' => 1 );
+my $xml_byte_string = toByteString( $xml, 'windows-1251' => 0 );
+=pod
 binmode STDOUT, ":raw";
 print "---";
 DEBUG && print "encoded string: [ $xml_byte_string  ], u:".utf8::is_utf8( $xml_byte_string );
 print "---";
 binmode STDOUT, ":utf8";
+=cut
 use Encode qw(decode);
 my $xml_cp1251_string = decode cp1251 => $xml_byte_string;
 DEBUG && print "encoded string decoded back to unicode: $xml_cp1251_string";
 
-
-#DEBUG && print $xml->toString( 0 );
+#DEBUG && "xml: ".print $xml->toString( 0 );
 #DEBUG && print $xml->toString( 0 );
 
 # Adding xml fragment to existing xml DOM

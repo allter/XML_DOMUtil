@@ -112,6 +112,7 @@ our @EXPORT = qw(
 	importXMLFragment
 	importOrderedHash
 	toUnicodeString
+	toByteString
 	xml_dom_from_ordered_hash
 	replaceInnerNodes
 );
@@ -122,7 +123,9 @@ use XML::LibXML;
 sub parse_xml ( $ )
 {
 	# TODO xml string check
-	return XML::LibXML->load_xml( string => $_[0] );
+	my $doc = XML::LibXML->load_xml( string => $_[0] );
+	$doc->setEncoding( 'utf-8' );
+	return $doc;
 };
 
 # parse_xml_fragment( $xml ) - Parses xml fragment
@@ -392,5 +395,44 @@ sub toUnicodeString ( $ ; $ $ )
 		? $_[0]->ownerDocument->documentElement->toString( $_[1], $_[2] )
 		: $_[0]->toString( $_[1], $_[2] );
 }
+
+# toByteString( $dom, $encoding [ , $format ] ) Presents the specified dom hierarchy as encoded byte string containing
+# well-formed XML. No xml prologue (<?xml..>), DTD or ENTITY stuff is written.
+# TODO: support for writing documentFragments
+sub toByteString ( $ $ ; $ )
+{
+	my $xml = shift;
+	my $encoding = shift;
+	my $style = shift;
+
+	my $new_document = XML::LibXML::Document->new();
+	$new_document->setEncoding( $encoding );
+	my $old_root_element = $xml->nodeType() == XML::LibXML::XML_DOCUMENT_NODE
+		? $xml->ownerDocument->documentElement
+		: $xml;
+#warn $old_root_element;
+	my $root_element = $new_document->adoptNode(
+		$old_root_element->cloneNode( 1 )
+	);
+#use Data::Dumper;
+#warn Dumper [
+#$old_root_element->ownerDocument->actualEncoding,
+#$old_root_element->ownerDocument->getEncoding,
+#$root_element->ownerDocument->getEncoding,
+#$root_element->ownerDocument->actualEncoding,
+#$new_document->getEncoding
+#];
+	#return $root_element->toString( $style, $encoding );
+	#return $root_element->toString( $style, 'ascii' );
+#	$new_document->setEncoding( cp1251 => );
+
+	$new_document->setDocumentElement( $root_element );
+#	$new_document->setEncoding( cp1251 => );
+	my $serialization = $new_document->toString( $style );
+	$serialization =~ s|^<\?xml[^>]*>[^<]*||;
+	return $serialization;
+	#return $root_element->toString( $style, 'latin-1' );
+}
+
 
 1; # End of XML::LibXML::DOMUtil
