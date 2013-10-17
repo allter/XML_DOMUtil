@@ -2,15 +2,12 @@
 use strict;
 use utf8;
 
-use constant DEBUG => 0;
+use Test::Simple tests => 4;
 
-binmode STDOUT, ":utf8";
+use constant DEBUG => 0;
+DEBUG && binmode STDOUT, ":utf8";
 #binmode STDERR, ":utf8";
 
-#BEGIN{
-#require 'DOMUtil.pm';
-#import XML::LibXML::DOMUtil;
-#}
 use XML::LibXML::DOMUtil;
 
 use XML::LibXML;
@@ -27,7 +24,8 @@ my $xml = parse_xml <<END;
 </root>
 END
 #$xml->setEncoding( 'utf-8' );
-DEBUG && print "source xml unicod string: ".toUnicodeString( $xml, 1 );
+my $unicode_string = toUnicodeString( $xml, 1 ); 
+DEBUG && print "source xml unicode string: ".$unicode_string;
 
 # TODO: Problem or misunderstanding about docencoding!
 $xml->setEncoding( 'utf-8' );
@@ -43,6 +41,20 @@ $xml->setEncoding( 'utf-8' );
 #my $xml_byte_string = toByteString( $xml, 'ascii' => 2 );
 #my $xml_byte_string = toByteString( $xml, 'latin1' => 1 );
 my $xml_byte_string = toByteString( $xml, 'windows-1251' => 0 );
+
+ok( ! utf8::is_utf8( $xml_byte_string ), 'toByteString lacks is_utf8 flag' );
+ok( utf8::is_utf8( $unicode_string ), 'toUnicodeString sets is_utf8 flag' );
+
+# Get 8-bit xml and parse it using XLDU
+my $xml_1251 = "<?xml version='1.0' encoding='windows-1251'?>".$xml_byte_string; # XML in 8-bit encoding
+my $dom_1251 = parse_xml $xml_1251;
+my $xml_byte_string2 = toByteString( $dom_1251, 'windows-1251' => 0 );
+
+ok( ! utf8::is_utf8( $xml_byte_string2 ), 'toByteString lacks is_utf8 flag (2)' );
+my $xml_unicode_string2 = toUnicodeString( $dom_1251 );
+DEBUG && print "Unicode representation of dom_1251: ".$xml_unicode_string2."\n";
+ok( utf8::is_utf8( $xml_unicode_string2 ), 'toUnicodeString sets is_utf8 flag (2)' );
+
 =pod
 binmode STDOUT, ":raw";
 print "---";
