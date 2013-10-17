@@ -391,6 +391,7 @@ sub xml_dom_from_ordered_hash( $ )
 # well-formed XML. No xml prologue (<?xml..>), DTD or ENTITY stuff is written.
 sub toUnicodeString ( $ ; $ $ )
 {
+	$_[1] = 0 unless $_[1];
 	return $_[0]->nodeType() == XML::LibXML::XML_DOCUMENT_NODE
 		? $_[0]->ownerDocument->documentElement->toString( $_[1], $_[2] )
 		: $_[0]->toString( $_[1], $_[2] );
