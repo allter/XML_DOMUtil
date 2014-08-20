@@ -2,7 +2,7 @@
 use strict;
 use utf8;
 
-use Test::Simple tests => 8;
+use Test::Simple tests => 9;
 
 use constant DEBUG => 0;
 DEBUG && binmode STDOUT, ":utf8";
@@ -13,6 +13,7 @@ use XML::LibXML::DOMUtil;
 use XML::LibXML;
 
 # Parsing well-formed xml from string literal (here-doc) as a XML DOM document ---------
+DEBUG && print "1.\n";
 my $xml = parse_xml <<END;
 <root>
 	1
@@ -26,6 +27,11 @@ END
 #$xml->setEncoding( 'utf-8' );
 my $unicode_string = toUnicodeString( $xml, 1 ); 
 DEBUG && print "source xml unicode string: ".$unicode_string;
+ok $xml->findvalue( '/root/кириллический_тег' ) eq 'кириллический текст'
+	&& $xml->findvalue( '/root/кириллический_тег/@кириллический_атрибут' )
+		eq 'кириллическое значение атрибута',
+	'Basic sanity check of a parse_xml result';
+DEBUG && print "\n";
 
 # TODO: Problem or misunderstanding about docencoding!
 $xml->setEncoding( 'utf-8' );
@@ -43,22 +49,22 @@ $xml->setEncoding( 'utf-8' );
 my $xml_byte_string = toByteString( $xml, 'windows-1251' => 0 );
 DEBUG && print "\n";
 
-DEBUG && print "1.\n";
+DEBUG && print "2.\n";
 ok( ! utf8::is_utf8( $xml_byte_string ), 'toByteString lacks is_utf8 flag' );
 
-DEBUG && print "2.\n";
+DEBUG && print "3.\n";
 ok( utf8::is_utf8( $unicode_string ), 'toUnicodeString sets is_utf8 flag' );
 DEBUG && print "\n";
 
 # Get 8-bit xml and parse it using XLDU
-DEBUG && print "3.\n";
+DEBUG && print "4.\n";
 my $xml_1251 = "<?xml version='1.0' encoding='windows-1251'?>".$xml_byte_string; # XML in 8-bit encoding
 my $dom_1251 = parse_xml $xml_1251;
 my $xml_byte_string2 = toByteString( $dom_1251, 'windows-1251' => 0 );
 
 ok( ! utf8::is_utf8( $xml_byte_string2 ), 'toByteString lacks is_utf8 flag (2)' );
 DEBUG && print "\n";
-DEBUG && print "3.\n";
+DEBUG && print "5.\n";
 my $xml_unicode_string2 = toUnicodeString( $dom_1251 );
 DEBUG && print "Unicode representation of dom_1251: ".$xml_unicode_string2."\n";
 ok( utf8::is_utf8( $xml_unicode_string2 ), 'toUnicodeString sets is_utf8 flag (2)' );
@@ -166,15 +172,15 @@ replaceInnerNodes( $dom3->documentElement, $tmp_dom );
 DEBUG && print "dom3 do: ".$dom3->toString(  1 );
 DEBUG && print "\n";
 
-# TODO Почему XML фрагмент не проходит?
-DEBUG && print "5.\n";
+# Handling text-only xml fragments (no elements at all)
+DEBUG && print "6.\n";
 my $x = parse_xml_fragment "&#x413;&#x440;&#x438;&#x433;&#x43E;&#x440;&#x44C;&#x435;&#x432;&#x438;&#x447;";
 DEBUG && print 'text-only XML fragment: '.toUnicodeString($x, 1), "\n";
-ok toUnicodeString( $x ) eq 'Григорьевич', 'Text-only XML framents';
+ok toUnicodeString( $x ) eq 'Григорьевич', 'Text-only XML fragments';
 DEBUG && print "\n";
 
 #------------------- templating XMLs using ohashs -------------------
-DEBUG && print "6.\n";
+DEBUG && print "7.\n";
 my $xml3 = xml_dom_from_ordered_hash +{
 	inner_root_element => 'test',
 };
@@ -186,7 +192,7 @@ ok $xml4->findvalue( '/root_element/inner_root_element' ) eq 'test',
 	'Constructing XMLs using ohashs';
 DEBUG && print "\n";
 
-DEBUG && print "7.\n";
+DEBUG && print "8.\n";
 my $xml5 = xml_dom_from_ordered_hash +{
 	root_element => +{
 		'@' => {
@@ -212,10 +218,10 @@ my $xml5 = xml_dom_from_ordered_hash +{
 DEBUG && print "constructed xml5: ".toUnicodeString( $xml5, 1 ), "\n";
 #DEBUG && print "xxx: ".$xml5->toString(1), "\n";
 ok $xml5->findvalue( '/root_element/inner_element' ) eq 'test',
-	'Constructing XMLs using ohashs - 2';
+	'Constructing XMLs using ohashs (2)';
 DEBUG && print "\n";
 
-DEBUG && print "8.\n";
+DEBUG && print "9.\n";
 use XML::LibXML::XPathContext;
 my $xpc = XML::LibXML::XPathContext->new();
 $xpc->registerNs( 'prefix', 'http://www.w3.org/2001/XMLSchema-instance' );
