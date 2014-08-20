@@ -2,7 +2,7 @@
 use strict;
 use utf8;
 
-use Test::Simple tests => 4;
+use Test::Simple tests => 5;
 
 use constant DEBUG => 0;
 DEBUG && binmode STDOUT, ":utf8";
@@ -155,5 +155,11 @@ my $tmp_dom = importOrderedHash( $dom3->documentElement, {
 replaceInnerNodes( $dom3->documentElement, $tmp_dom );
 #print "dom3: ".toUnicodeString( $dom3, 1 );
 DEBUG && print "dom3 do: ".$dom3->toString(  1 );
+DEBUG && print "\n";
 
-
+# TODO Почему XML фрагмент не проходит?
+DEBUG && print "5.\n";
+my $x = parse_xml_fragment "&#x413;&#x440;&#x438;&#x433;&#x43E;&#x440;&#x44C;&#x435;&#x432;&#x438;&#x447;";
+DEBUG && print 'text-only XML fragment: '.toUnicodeString($x, 1), "\n";
+ok toUnicodeString( $x ) eq 'Григорьевич', 'Text-only XML framents';
+DEBUG && print "\n";

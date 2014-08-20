@@ -139,12 +139,11 @@ sub parse_xml_fragment ( $ )
 	return $df unless $root->hasChildNodes;
 
 	my $c = $root->firstChild;
-	my $last_child = $root->lastChild;
 	do
 	{
 		$df->appendChild( $new_document->importNode( $c ) );
 		$c = $c->nextSibling;
-	} until $c->isSameNode( $last_child );
+	} while $c;
 	return $df;
 }
 
