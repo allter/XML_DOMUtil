@@ -2,7 +2,7 @@
 use strict;
 use utf8;
 
-use Test::Simple tests => 5;
+use Test::Simple tests => 7;
 
 use constant DEBUG => 0;
 DEBUG && binmode STDOUT, ":utf8";
@@ -172,3 +172,30 @@ my $x = parse_xml_fragment "&#x413;&#x440;&#x438;&#x433;&#x43E;&#x440;&#x44C;&#x
 DEBUG && print 'text-only XML fragment: '.toUnicodeString($x, 1), "\n";
 ok toUnicodeString( $x ) eq 'Григорьевич', 'Text-only XML framents';
 DEBUG && print "\n";
+
+#------------------- templating XMLs using ohashs -------------------
+DEBUG && print "6.\n";
+my $xml3 = xml_dom_from_ordered_hash +{
+	inner_root_element => 'test',
+};
+my $xml4 = xml_dom_from_ordered_hash +{
+	root_element => $xml3, # inner_root_element inside root_element
+};
+DEBUG && print "constructed xml4: ".toUnicodeString( $xml4, 1 ), "\n";
+ok $xml4->findvalue( '/root_element/inner_root_element' ) eq 'test',
+	'Constructing XMLs using ohashs';
+DEBUG && print "\n";
+
+DEBUG && print "7.\n";
+my $xml5 = xml_dom_from_ordered_hash +{
+	root_element => +{
+		#'@' => { 'attribute' => '42', },
+		#'@attribute2' => 149,
+		inner_element => ( $xml3->findnodes( '/inner_root_element/text()' ) )[0],
+	}
+};
+DEBUG && print "constructed xml5: ".toUnicodeString( $xml5, 1 ), "\n";
+ok $xml5->findvalue( '/root_element/inner_element' ) eq 'test',
+	'Constructing XMLs using ohashs - 2';
+DEBUG && print "\n";
+

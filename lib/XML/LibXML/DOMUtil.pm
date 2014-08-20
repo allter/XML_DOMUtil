@@ -278,6 +278,7 @@ sub _get_document_fragment_from_ordered_hash ( $ $ $ )
 		map
 		{
 			/^(?:(\d+)_)?(?:([A-Za-z]+)\:)?(.+)$/
+				#  [ ord, elt, key, ns ]
 				? ( [ $1, $3, $_, $2 ] )
 				: ();
 		}
@@ -317,8 +318,9 @@ sub _get_document_fragment_from_ordered_hash ( $ $ $ )
 				$el = $document->createElement( $element_name );
 			}
 		}
-
 		$df->appendChild( $el );
+
+		# Populate the created element
 		if ( ! ref $ohash->{ $key } )
 		{
 			my $text = $document->createTextNode( $ohash->{ $key } );
@@ -326,6 +328,7 @@ sub _get_document_fragment_from_ordered_hash ( $ $ $ )
 		}
 		elsif ( ref $ohash->{ $key } eq 'HASH' )
 		{
+			# Update prefix -> namespace mapping
 			my $ahash = $ohash->{ $key }{ '@' } || {};
 			my %namespace_by_prefix = (
 				%$namespace_by_prefix,
@@ -337,8 +340,14 @@ sub _get_document_fragment_from_ordered_hash ( $ $ $ )
 				}
 					keys %$ahash
 			);
+
+			# Recursively append fragment for the ohash value
 			my $df2 = _get_document_fragment_from_ordered_hash( $document, $ohash->{ $key }, \%namespace_by_prefix );
 			$el->appendChild( $df2 );
+		}
+		elsif ( UNIVERSAL::isa( $ohash->{ $key }, 'XML::LibXML::Node' ) )
+		{
+			$el->appendChild( $document->importNode( _get_element( $ohash->{ $key } ) ) );
 		}
 		else
 		{
@@ -361,29 +370,46 @@ sub xml_dom_from_ordered_hash( $ )
 	if ( $key eq '<>' || $key eq '<' || $key eq '>' )
 	{
 		# TODO
+		die 'FIXME: <> < > @ support';
 	}
 	else
 	{
 		my ( $element_name ) = $key =~ /^(?:\d+_)?(\D+)$/;
+
+		# Create element
 		my $el = $document->createElement( $element_name );
 		$document->setDocumentElement( $el );
+
+		# Populate element
 		if ( ! ref $ohash->{ $key } )
 		{
 			my $text = $document->createTextNode( $ohash->{ $key } );
 			$el->appendChild( $text );
-			return $document;
 		}
 		elsif ( ref $ohash->{ $key } eq 'HASH' )
 		{
 			my $df = _get_document_fragment_from_ordered_hash( $document, $ohash->{ $key }, {} );
 			$el->appendChild( $df );
-			return $document;
+		}
+		elsif ( UNIVERSAL::isa( $ohash->{ $key }, 'XML::LibXML::Node' ) )
+		{
+			$el->appendChild( $document->importNode( _get_element( $ohash->{ $key } ) ) );
 		}
 		else
 		{
 			die "Unsupported type of hash value";
 		}
 	}
+
+	return $document;
+}
+
+# Returns element, even if an argument is a document
+sub _get_element ( $ )
+{
+	return $_[0]->nodeType() == XML::LibXML::XML_DOCUMENT_NODE
+		? $_[0]->documentElement
+		: $_[0];
 }
 
 # toUnicodeString( $dom, $format ) Presents the specified dom hierarchy as a unicode string containing
