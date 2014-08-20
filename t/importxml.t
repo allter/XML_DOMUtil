@@ -41,19 +41,28 @@ $xml->setEncoding( 'utf-8' );
 #my $xml_byte_string = toByteString( $xml, 'ascii' => 2 );
 #my $xml_byte_string = toByteString( $xml, 'latin1' => 1 );
 my $xml_byte_string = toByteString( $xml, 'windows-1251' => 0 );
+DEBUG && print "\n";
 
+DEBUG && print "1.\n";
 ok( ! utf8::is_utf8( $xml_byte_string ), 'toByteString lacks is_utf8 flag' );
+
+DEBUG && print "2.\n";
 ok( utf8::is_utf8( $unicode_string ), 'toUnicodeString sets is_utf8 flag' );
+DEBUG && print "\n";
 
 # Get 8-bit xml and parse it using XLDU
+DEBUG && print "3.\n";
 my $xml_1251 = "<?xml version='1.0' encoding='windows-1251'?>".$xml_byte_string; # XML in 8-bit encoding
 my $dom_1251 = parse_xml $xml_1251;
 my $xml_byte_string2 = toByteString( $dom_1251, 'windows-1251' => 0 );
 
 ok( ! utf8::is_utf8( $xml_byte_string2 ), 'toByteString lacks is_utf8 flag (2)' );
+DEBUG && print "\n";
+DEBUG && print "3.\n";
 my $xml_unicode_string2 = toUnicodeString( $dom_1251 );
 DEBUG && print "Unicode representation of dom_1251: ".$xml_unicode_string2."\n";
 ok( utf8::is_utf8( $xml_unicode_string2 ), 'toUnicodeString sets is_utf8 flag (2)' );
+DEBUG && print "\n";
 
 =pod
 binmode STDOUT, ":raw";
