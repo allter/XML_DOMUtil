@@ -2,7 +2,7 @@
 use strict;
 use utf8;
 
-use Test::Simple tests => 7;
+use Test::Simple tests => 8;
 
 use constant DEBUG => 0;
 DEBUG && binmode STDOUT, ":utf8";
@@ -189,13 +189,62 @@ DEBUG && print "\n";
 DEBUG && print "7.\n";
 my $xml5 = xml_dom_from_ordered_hash +{
 	root_element => +{
-		'@' => { 'attribute' => '42', },
+		'@' => {
+			'attribute' => '42',
+			'p2:type' => "PaymentParameter",
+		},
+		'@xmlns:p2' => "http://www.w3.org/2001/XMLSchema-instance",
+		'inner_element2' => {
+			'@' => {
+				'xmlns:p3' => "http://www.w3.org/2001/XMLSchema-instance",
+			},
+			'@p3:type' => "PaymentParameter",
+		},
 		'42_@attribute2' => 149,
+
+		'25_innermost_element' => {
+			'@p2:type' => "Cash",
+			'p2:element' => "Bar", #TODO namespaced elements
+		},
 		'149_inner_element' => ( $xml3->findnodes( '/inner_root_element/text()' ) )[0],
 	}
 };
 DEBUG && print "constructed xml5: ".toUnicodeString( $xml5, 1 ), "\n";
+#DEBUG && print "xxx: ".$xml5->toString(1), "\n";
 ok $xml5->findvalue( '/root_element/inner_element' ) eq 'test',
 	'Constructing XMLs using ohashs - 2';
 DEBUG && print "\n";
 
+DEBUG && print "8.\n";
+use XML::LibXML::XPathContext;
+my $xpc = XML::LibXML::XPathContext->new();
+$xpc->registerNs( 'prefix', 'http://www.w3.org/2001/XMLSchema-instance' );
+ok $xpc->findvalue( '/root_element/innermost_element/@prefix:type', $xml5 ) eq 'Cash',
+	'Namespaces in attributes and (TODO) elements';
+DEBUG && print $xpc->findvalue( '/root_element/innermost_element/prefix:element', $xml5 ), 'Bar'; #TODO!!!
+#ok $xml5->findvalue( '/root_element/inner_element' ) eq 'test',
+#	'Constructing XMLs using ohashs - 2';
+DEBUG && print "\n";
+
+
+=pod
+DEBUG && print "8.\n";
+my $xml6 = xml_dom_from_ordered_hash +{
+	root_element => {
+		'@' => {
+			xmlns => 'urn:test',
+		},
+	},
+};
+DEBUG && print "constructed xml6: ".toUnicodeString( $xml6, 1 ), "\n";
+DEBUG && print "\n";
+
+DEBUG && print "9.\n";
+my $xml6 = xml_dom_from_ordered_hash +{
+	root_element => {
+		'@xmlns' => 'urn:test',
+	},
+};
+DEBUG && print "constructed xml6: ".toUnicodeString( $xml6, 1 ), "\n";
+DEBUG && print "\n";
+=cut

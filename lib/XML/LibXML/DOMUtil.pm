@@ -250,6 +250,9 @@ sub _get_document_fragment_from_ordered_hash ( $ @ )
 	my $document = $dom->ownerDocument;
 	my $df = $document->createDocumentFragment();
 
+#use Data::Dumper;
+#warn 'namespace_by_prefix: '.Dumper $namespace_by_prefix;
+
 =pod
 
 		if ( $key eq '<>' || $key eq '<' || $key eq '>' )
@@ -368,12 +371,29 @@ sub _extract_inner_hash_and_namespace_by_prefix
 		if ( /^xmlns(?:|:([A-Za-z0-9]+))$/ )
 		{
 			$inner_namespace_by_prefix{ $1 || '' } = $ahash->{ $_ };
+#warn 'aaa', $1, $ahash->{ $_ };
 		}
 		else
 		{
 			push @attrs, $_;
 		}
 	}
+
+	# Remove namespace attrs from @keys
+	my @nskeys = grep /^(?:(\d+)_)?\@xmlns/, keys %inner_hash;
+	foreach ( @nskeys )
+	{
+		if ( /\@xmlns(?:|:([A-Za-z0-9]+))$/ )
+		{
+			# add namespace
+			$inner_namespace_by_prefix{ $1 || '' } = $inner_hash{ $_ };
+		}
+		else
+		{
+			die "Unsupported namespace declaration $_";
+		}
+	}
+	delete @inner_hash{ @nskeys };
 
 	# Process attribute nodes from '@'-key
 	if ( @attrs )
@@ -385,7 +405,8 @@ sub _extract_inner_hash_and_namespace_by_prefix
 		}
 		foreach ( @attrs )
 		{
-			$current_element->setAttribute( $_, $inner_hash{ '@' }{ $_ } );
+#warn $_;
+			_setAttributeSmart( $current_element, \%inner_namespace_by_prefix, $_, $inner_hash{ '@' }{ $_ } );
 #warn "$_, $inner_hash{ '@' }{ $_ }";
 #warn $current_element->toString();
 		}
@@ -407,17 +428,9 @@ sub _extract_inner_hash_and_namespace_by_prefix
 		}
 		foreach ( @akeys )
 		{
-			if ( /\@xmlns(?:|:([A-Za-z0-9]+))/ )
-			{
-				# add namespace
-				$inner_namespace_by_prefix{ $1 || '' } = $inner_hash{ $_ };
-			}
-			else
-			{
-				my ( $aname ) = /\@([A-Za-z0-9]+)/;
-				$current_element->setAttribute( $aname, $inner_hash{ $_ } );
-#warn $current_element->toString();
-			}
+			my ( $aname ) = /\@(.+)$/;
+			_setAttributeSmart( $current_element, \%inner_namespace_by_prefix, $aname, $inner_hash{ $_ } );
+#warn 'ce::: '.$current_element->toString();
 		}
 	}
 
@@ -428,6 +441,22 @@ sub _extract_inner_hash_and_namespace_by_prefix
 #warn 'inner_namespace_by_prefix: '.Dumper \%inner_namespace_by_prefix;
 
 	return ( \%inner_hash, \%inner_namespace_by_prefix );
+}
+
+# Sets attribute in a smart way (either by setAttribute or by setAttributeNS
+sub _setAttributeSmart
+{
+	my ( $element, $namespace_by_prefix, $key, $value ) = @_;
+	if ( $key =~ /^([^:]+):(.+)$/ )
+	{
+		return $element->setAttributeNS(
+			$namespace_by_prefix->{ $1 }, $key, $value
+		);
+	}
+	else
+	{
+		return $element->setAttribute( $key, $value );
+	}
 }
 
 # xml_dom_from_ordered_hash( $ohash ) - construct XML DOM from a ohash
