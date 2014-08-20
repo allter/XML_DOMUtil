@@ -204,7 +204,7 @@ sub replaceInnerNodes( $ $ )
 	$node->appendChild( $replacement_node );
 }
 
-sub _get_document_fragment_from_ordered_hash ( $ $ $ );
+sub _get_document_fragment_from_ordered_hash ( $ @ );
 
 # importOrderedHash( $dom, $ohash ) - imports to $dom the document fragment
 # or element constructed from ohash
@@ -244,7 +244,7 @@ sub importOrderedHash( $ $ )
 }
 
 # construct XML DOM documentFragment from ohash
-sub _get_document_fragment_from_ordered_hash ( $ $ $ )
+sub _get_document_fragment_from_ordered_hash ( $ @ )
 {
 	my ( $dom, $ohash, $namespace_by_prefix ) = @_;
 	my $document = $dom->ownerDocument;
@@ -318,7 +318,6 @@ sub _get_document_fragment_from_ordered_hash ( $ $ $ )
 				$el = $document->createElement( $element_name );
 			}
 		}
-		$df->appendChild( $el );
 
 		# Populate the created element
 		if ( ! ref $ohash->{ $key } )
@@ -328,21 +327,12 @@ sub _get_document_fragment_from_ordered_hash ( $ $ $ )
 		}
 		elsif ( ref $ohash->{ $key } eq 'HASH' )
 		{
-			# Update prefix -> namespace mapping
-			my $ahash = $ohash->{ $key }{ '@' } || {};
-			my %namespace_by_prefix = (
-				%$namespace_by_prefix,
-				map
-				{
-					/^xmlns(?:|:([A-Za-z0-9]+))$/
-						? ( $1 || '' => $ahash->{ $_ } )
-						: ();
-				}
-					keys %$ahash
-			);
-
 			# Recursively append fragment for the ohash value
-			my $df2 = _get_document_fragment_from_ordered_hash( $document, $ohash->{ $key }, \%namespace_by_prefix );
+			my $df2 = _get_document_fragment_from_ordered_hash( $document,
+				_extract_inner_hash_and_namespace_by_prefix(
+					$document, $el, $ohash->{ $key }, $namespace_by_prefix
+				)
+			);
 			$el->appendChild( $df2 );
 		}
 		elsif ( UNIVERSAL::isa( $ohash->{ $key }, 'XML::LibXML::Node' ) )
@@ -353,9 +343,91 @@ sub _get_document_fragment_from_ordered_hash ( $ $ $ )
 		{
 			die "Unsupported type of hash value";
 		}
+
+		# Actually append
+		$df->appendChild( $el );
 	}
 
 	return $df;
+}
+
+# Returns refs to inner hash and prefix mappings for recursive processing ohashes
+# Attributes that are removed from the original are appended into current element
+sub _extract_inner_hash_and_namespace_by_prefix
+{
+	my ( $document, $current_element, $original_hash, $outer_namespace_by_prefix ) = @_;
+
+	my %inner_hash = %$original_hash;
+	my %inner_namespace_by_prefix = %$outer_namespace_by_prefix;
+
+	# Process special '@'-key: sort into namespace and ordinary attrs
+	my $ahash = $inner_hash{ '@' } || {};
+	my @attrs;
+	foreach ( keys %$ahash )
+	{
+		if ( /^xmlns(?:|:([A-Za-z0-9]+))$/ )
+		{
+			$inner_namespace_by_prefix{ $1 || '' } = $ahash->{ $_ };
+		}
+		else
+		{
+			push @attrs, $_;
+		}
+	}
+
+	# Process attribute nodes from '@'-key
+	if ( @attrs )
+	{
+		unless ( $current_element->nodeType == XML::LibXML::XML_ELEMENT_NODE )
+		{
+			require Carp;
+			croak( "Attributes only supported on ELEMENT nodes" );
+		}
+		foreach ( @attrs )
+		{
+			$current_element->setAttribute( $_, $inner_hash{ '@' }{ $_ } );
+#warn "$_, $inner_hash{ '@' }{ $_ }";
+#warn $current_element->toString();
+		}
+	}
+
+	# Delete '@'-key from inner_hash
+	delete $inner_hash{ '@' };
+
+	# Process attribute nodes from other @keys
+	my @akeys = grep /^(?:(\d+)_)?\@/, keys %inner_hash;
+#use Data::Dumper;
+#warn Dumper \@akeys;
+	if ( @akeys )
+	{
+		unless ( $current_element->nodeType == XML::LibXML::XML_ELEMENT_NODE )
+		{
+			require Carp;
+			croak( "Attributes only supported on ELEMENT nodes" );
+		}
+		foreach ( @akeys )
+		{
+			if ( /\@xmlns(?:|:([A-Za-z0-9]+))/ )
+			{
+				# add namespace
+				$inner_namespace_by_prefix{ $1 || '' } = $inner_hash{ $_ };
+			}
+			else
+			{
+				my ( $aname ) = /\@([A-Za-z0-9]+)/;
+				$current_element->setAttribute( $aname, $inner_hash{ $_ } );
+#warn $current_element->toString();
+			}
+		}
+	}
+
+	# Delete @keys from inner_hash
+	delete @inner_hash{ @akeys };
+#use Data::Dumper;
+#warn 'inner_hash: '.Dumper \%inner_hash;
+#warn 'inner_namespace_by_prefix: '.Dumper \%inner_namespace_by_prefix;
+
+	return ( \%inner_hash, \%inner_namespace_by_prefix );
 }
 
 # xml_dom_from_ordered_hash( $ohash ) - construct XML DOM from a ohash
@@ -388,7 +460,11 @@ sub xml_dom_from_ordered_hash( $ )
 		}
 		elsif ( ref $ohash->{ $key } eq 'HASH' )
 		{
-			my $df = _get_document_fragment_from_ordered_hash( $document, $ohash->{ $key }, {} );
+			my $df = _get_document_fragment_from_ordered_hash( $document,
+				_extract_inner_hash_and_namespace_by_prefix(
+					$document, $el, $ohash->{ $key }, {}
+				)
+			);
 			$el->appendChild( $df );
 		}
 		elsif ( UNIVERSAL::isa( $ohash->{ $key }, 'XML::LibXML::Node' ) )

@@ -189,9 +189,9 @@ DEBUG && print "\n";
 DEBUG && print "7.\n";
 my $xml5 = xml_dom_from_ordered_hash +{
 	root_element => +{
-		#'@' => { 'attribute' => '42', },
-		#'@attribute2' => 149,
-		inner_element => ( $xml3->findnodes( '/inner_root_element/text()' ) )[0],
+		'@' => { 'attribute' => '42', },
+		'42_@attribute2' => 149,
+		'149_inner_element' => ( $xml3->findnodes( '/inner_root_element/text()' ) )[0],
 	}
 };
 DEBUG && print "constructed xml5: ".toUnicodeString( $xml5, 1 ), "\n";
