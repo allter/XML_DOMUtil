@@ -2,7 +2,7 @@
 use strict;
 use utf8;
 
-use Test::Simple tests => 9;
+use Test::Simple tests => 10;
 
 use constant DEBUG => 0;
 DEBUG && binmode STDOUT, ":utf8";
@@ -207,6 +207,7 @@ my $xml5 = xml_dom_from_ordered_hash +{
 			'@p3:type' => "PaymentParameter",
 		},
 		'42_@attribute2' => 149,
+		'45_@атрибут' => 'значение',
 
 		'25_innermost_element' => {
 			'@p2:type' => "Cash",
@@ -232,6 +233,10 @@ DEBUG && print $xpc->findvalue( '/root_element/innermost_element/prefix:element'
 #	'Constructing XMLs using ohashs - 2';
 DEBUG && print "\n";
 
+# Не-аски при конструировании из ohash
+ok $xpc->findvalue( '/root_element/@атрибут', $xml5 ) eq 'значение',
+	'Unicode names and values when constructing from ohash';
+DEBUG && print "\n";
 
 =pod
 DEBUG && print "8.\n";

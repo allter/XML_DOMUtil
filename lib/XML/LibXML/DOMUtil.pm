@@ -467,6 +467,8 @@ sub xml_dom_from_ordered_hash( $ )
 		unless ref $ohash eq 'HASH' && scalar keys %$ohash == 1;
 
 	my $document = XML::LibXML::Document->new();
+	$document->setEncoding( 'utf-8' );
+
 	my $key = ( keys %$ohash )[0];
 	if ( $key eq '<>' || $key eq '<' || $key eq '>' )
 	{
