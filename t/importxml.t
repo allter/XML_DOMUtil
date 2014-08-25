@@ -2,7 +2,7 @@
 use strict;
 use utf8;
 
-use Test::Simple tests => 10;
+use Test::Simple tests => 12;
 
 use constant DEBUG => 0;
 DEBUG && binmode STDOUT, ":utf8";
@@ -236,6 +236,26 @@ DEBUG && print "\n";
 # Не-аски при конструировании из ohash
 ok $xpc->findvalue( '/root_element/@атрибут', $xml5 ) eq 'значение',
 	'Unicode names and values when constructing from ohash';
+DEBUG && print "\n";
+
+# Произвольный XML в ohash
+DEBUG && print "11, 12. <> support";
+my $xml6_inner = xml_dom_from_ordered_hash {
+	'<>' => '<third_элемент>third значение</third_элемент>',
+};
+my $xml6 = xml_dom_from_ordered_hash {
+	root_element => {
+		'10_<>' => '<first_элемент>first значение</first_элемент>',
+		'20_second_element' => 'second value',
+		'30_<>' => $xml6_inner,
+	},
+};
+DEBUG && print 'xml6: '.toUnicodeString( $xml6 ), "\n";
+ok $xml6->findvalue( '/root_element/first_элемент' ) eq 'first значение'
+	&& $xml6->findvalue( '/root_element/second_element' ) eq 'second value',
+	'Inclusion of XML strings into ohashs';
+ok $xml6->findvalue( '/root_element/third_элемент' ) eq 'third значение',
+	'Inclusion of XML DOMs into ohashs';
 DEBUG && print "\n";
 
 =pod

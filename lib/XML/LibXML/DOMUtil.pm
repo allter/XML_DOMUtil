@@ -253,18 +253,6 @@ sub _get_document_fragment_from_ordered_hash ( $ @ )
 #use Data::Dumper;
 #warn 'namespace_by_prefix: '.Dumper $namespace_by_prefix;
 
-=pod
-
-		if ( $key eq '<>' || $key eq '<' || $key eq '>' )
-		{
-			# TODO
-		}
-		else
-		{
-		}
-
-=cut
-
 	# Get parsed and sorted elements -> key mappings
 	my @keys
 		=
@@ -280,7 +268,8 @@ sub _get_document_fragment_from_ordered_hash ( $ @ )
 		}
 		map
 		{
-			/^(?:(\d+)_)?(?:([A-Za-z]+)\:)?(.+)$/
+			#    1          2          3
+			/^(?:(\d+)_)?(?:([^:]+)\:)?(.+)$/
 				#  [ ord, elt, key, ns ]
 				? ( [ $1, $3, $_, $2 ] )
 				: ();
@@ -290,6 +279,21 @@ sub _get_document_fragment_from_ordered_hash ( $ @ )
 	foreach ( @keys )
 	{
 		my ( $key, $element_name, $ns ) = ( $_->[2], $_->[1], $_->[3] );
+
+		# Особый случай - включение сырого XML или xml dom
+		if ( $element_name eq '<>' )
+		{
+			if ( UNIVERSAL::isa( $ohash->{ $key }, 'XML::LibXML::Node' ) )
+			{
+				$df->appendChild( $document->importNode( _get_element( $ohash->{ $key } ) ) );
+			}
+			else
+			{
+				my $xml = parse_xml $ohash->{ $key };
+				$df->appendChild( $document->importNode( $xml->documentElement ) );
+			}
+			next;
+		};
 
 		# Create element. If needed, use namespace
 		my $el;
@@ -470,10 +474,18 @@ sub xml_dom_from_ordered_hash( $ )
 	$document->setEncoding( 'utf-8' );
 
 	my $key = ( keys %$ohash )[0];
-	if ( $key eq '<>' || $key eq '<' || $key eq '>' )
+	if ( $key =~ /(?:(\d+)_)?<>$/ )
 	{
-		# TODO
-		die 'FIXME: <> < > @ support';
+		if ( UNIVERSAL::isa( $ohash->{ $key }, 'XML::LibXML::Node' ) )
+		{
+			my $importedElement = $document->importNode( _get_element( $ohash->{ $key } ) );
+			$document->setDocumentElement( $importedElement );
+		}
+		else
+		{
+			my $xml = parse_xml $ohash->{ $key };
+			$document->setDocumentElement( $document->importNode( $xml->documentElement ) );
+		}
 	}
 	else
 	{
