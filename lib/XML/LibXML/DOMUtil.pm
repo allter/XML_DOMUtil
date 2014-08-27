@@ -113,6 +113,8 @@ our @EXPORT = qw(
 	importOrderedHash
 	toUnicodeString
 	toByteString
+	xml_fragment_from_hash
+	xml_from_hash
 	xml_dom_from_ordered_hash
 	replaceInnerNodes
 );
@@ -243,11 +245,13 @@ sub importOrderedHash( $ $ )
 	return $df;
 }
 
-# construct XML DOM documentFragment from ohash
+# Recursively construct XML DOM documentFragment from ohash
 sub _get_document_fragment_from_ordered_hash ( $ @ )
 {
 	my ( $dom, $ohash, $namespace_by_prefix ) = @_;
-	my $document = $dom->ownerDocument;
+	my $document = $dom->nodeType() == XML::LibXML::XML_DOCUMENT_NODE
+		? $dom
+		: $dom->ownerDocument;
 	my $df = $document->createDocumentFragment();
 
 #use Data::Dumper;
@@ -289,8 +293,8 @@ sub _get_document_fragment_from_ordered_hash ( $ @ )
 			}
 			else
 			{
-				my $xml = parse_xml $ohash->{ $key };
-				$df->appendChild( $document->importNode( $xml->documentElement ) );
+				my $xml = parse_xml_fragment $ohash->{ $key };
+				$df->appendChild( $document->importNode( $xml ) );
 			}
 			next;
 		};
@@ -461,6 +465,22 @@ sub _setAttributeSmart
 	{
 		return $element->setAttribute( $key, $value );
 	}
+}
+
+# xml_fragment_from_hash( $ohash ) - construct XML DocumentFragment from ohash
+sub xml_fragment_from_hash( $ )
+{
+	my $ohash = shift;
+	my $document = XML::LibXML::Document->new();
+
+	my $df = _get_document_fragment_from_ordered_hash( $document, $ohash, +{} );
+
+	return $df;
+}
+
+# xml_from_hash ( $ohash ) - construct XML Document from a ohash
+sub xml_from_hash ( $ )
+{
 }
 
 # xml_dom_from_ordered_hash( $ohash ) - construct XML DOM from a ohash

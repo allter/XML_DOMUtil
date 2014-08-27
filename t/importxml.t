@@ -2,7 +2,7 @@
 use strict;
 use utf8;
 
-use Test::Simple tests => 12;
+use Test::Simple tests => 13;
 
 use constant DEBUG => 0;
 DEBUG && binmode STDOUT, ":utf8";
@@ -257,6 +257,23 @@ ok $xml6->findvalue( '/root_element/first_элемент' ) eq 'first значе
 ok $xml6->findvalue( '/root_element/third_элемент' ) eq 'third значение',
 	'Inclusion of XML DOMs into ohashs';
 DEBUG && print "\n";
+
+DEBUG && print "13. constructing xml fragments from ohashs and including them\n";
+my $xml7_inner = xml_fragment_from_hash {
+	'10_<>' => 'текст',
+	'20_<>' => '<xml>xml</xml>',
+};
+my $xml7 = xml_dom_from_ordered_hash {
+	root_element => $xml7_inner,
+};
+DEBUG && print "xml7_inner: ".toUnicodeString( $xml7_inner ), "\n";
+DEBUG && print "xml7: ".toUnicodeString( $xml7 ), "\n";
+ok $xml7->findvalue( '/root_element/xml' ) eq 'xml'
+	&& $xml7->findvalue( '/root_element/text()' ) eq "текст",
+	'Constructing xml from ohash fragments';
+DEBUG && print "\n";
+
+# TODO change xml_dom_from_ordered_hash to xml_from_hash
 
 =pod
 DEBUG && print "8.\n";
