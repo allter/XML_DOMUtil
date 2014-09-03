@@ -2,7 +2,7 @@
 use strict;
 use utf8;
 
-use Test::Simple tests => 13;
+use Test::Simple tests => 14;
 
 use constant DEBUG => 0;
 DEBUG && binmode STDOUT, ":utf8";
@@ -272,6 +272,22 @@ ok $xml7->findvalue( '/root_element/xml' ) eq 'xml'
 	&& $xml7->findvalue( '/root_element/text()' ) eq "текст",
 	'Constructing xml from ohash fragments';
 DEBUG && print "\n";
+
+# в toUnicodeString проверять кодировку для того, что бы можно было без
+# "document->setEncoding" во время парсинга работать
+# -похоже, всё нормально!
+#my $xml_fragment8 = xml_fragment_from_hash { '<>' => "проверка", el => "кодировок", };
+my $xml_fragment8 = parse_xml_fragment 'проверка<элт>кодировок</элт>';
+#DEBUG && print toUnicodeString( $xml_fragment8 ), "\n";
+#DEBUG && print $xml_fragment8->findvalue( 'элт' ), "\n";
+use Encode qw(encode_utf8);
+my $doc8 = XML::LibXML->load_xml( string => encode_utf8 '<?xml version="1.0" encoding="utf-8"?><элт>кодировок</элт>' );
+DEBUG && print toUnicodeString( $doc8 ), "\n";
+DEBUG && print $doc8->findvalue( '//элт' ), "\n";
+ok utf8::is_utf8( $doc8->findvalue( '//элт' ) )
+	&& utf8::is_utf8( $xml_fragment8->findvalue( 'элт' ) )
+	, 'Correct encoding test';
+# Попробовать ещё создать не utf8 документ, и добавить в него юникодные данные, а потом сделать toUnicodeString
 
 # TODO change xml_dom_from_ordered_hash to xml_from_hash
 
